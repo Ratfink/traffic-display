@@ -12,16 +12,19 @@ class ImageError(Exception):
 
 class TrafficDisplay:
 
-    def __init__(self, speed=1, baudrate=8000000, le=None, oe=None, sck=None,
+    def __init__(self, speed=1, baudrate=80000000, le=None, oe=None, sck=None,
                  mosi=None, miso=None):
         self.oe = oe if oe is not None else machine.Pin(5, machine.Pin.OUT)
         self.le = le if le is not None else machine.Pin(4, machine.Pin.OUT)
 
-        sck = sck if sck is not None else machine.Pin(14)
-        mosi = mosi if mosi is not None else machine.Pin(13)
-        miso = miso if miso is not None else machine.Pin(12)
-        self.spi = machine.SPI(baudrate=baudrate, polarity=0, phase=0, sck=sck,
-                               mosi=mosi, miso=miso)
+        if sck is None and mosi is None and miso is None:
+            self.spi = machine.SPI(0, baudrate=baudrate, polarity=0, phase=0)
+        else:
+            sck = sck if sck is not None else machine.Pin(14)
+            mosi = mosi if mosi is not None else machine.Pin(13)
+            miso = miso if miso is not None else machine.Pin(12)
+            self.spi = machine.SPI(-1, baudrate=baudrate, polarity=0, phase=0,
+                                   miso=miso, mosi=mosi, sck=sck)
 
         self.oev = self.oe.value
         self.lev = self.le.value
@@ -105,7 +108,6 @@ class TrafficDisplay:
             self.timer.deinit()
             self.oev(1)
             self.lev(0)
-            machine.freq(80000000)
             speed = self._speed
             self._speed = 0
             return speed
@@ -113,10 +115,6 @@ class TrafficDisplay:
 
     def start(self, state):
         if state:
-            if state == 1:
-                machine.freq(160000000)
-            else:
-                machine.freq(80000000)
             self.timer.init(period=state, **self._timer_init_args)
             self._speed = state
             self.oev(0)
@@ -124,6 +122,8 @@ class TrafficDisplay:
     def _refresh(self, tim):
         self._index %= 12
         self.spi.write(self._linebufs[self._index])
+        self.oev(1)
         self.lev(1)
         self.lev(0)
+        self.oev(0)
         self._index += 1
