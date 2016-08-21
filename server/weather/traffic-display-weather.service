@@ -1,0 +1,6 @@
+[Unit]
+Description=Update weather information
+
+[Service]
+Type=oneshot
+ExecStart=/home/clay/traffic-display-weather/update.py

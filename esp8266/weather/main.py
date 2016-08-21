@@ -1,0 +1,2 @@
+import weather
+weather.main()
